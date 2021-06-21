@@ -1,0 +1,96 @@
+<meta charset="utf-8"><script type="module">
+
+const w = 1920 / 4;
+const h = 1080 / 4;
+const sec = 3;
+
+const fps = 60;
+
+const update = (g, w, h, ticks, len) => {
+  // bg
+  g.fillStyle = "rgba(228, 228, 228, 1)";
+  g.fillRect(0, 0, w, h);
+  // hanabi
+  const n = 3000;
+  const s = w / 200;
+  g.fillStyle = "rgba(255, 0, 0, 1)";
+  const cx = w / 2;
+  const cy = h / 2;
+  for (let i = 0; i < n; i++) {
+    const r = (ticks + i - n) / len * w;
+    if (r < 0) {
+      continue;
+    }
+    const th = i / 5;
+    const x = cx + Math.cos(th) * r;
+    const y = cy + Math.sin(th) * r;
+    g.fillRect(x, y, s, s);
+  }
+};
+
+const getSupprotedMimeType = () => {
+  try {
+    if (navigator.mediaDevices) {
+      const contentTypes = [
+        "video/mp4;codecs=avc1", // NG at Chrome
+        "video/mp4", // NG at Chrome
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
+      const supported = contentTypes.filter((c) => MediaRecorder.isTypeSupported(c));
+      if (supported.length == 0) {
+        throw new Error("not supported", contentTypes);
+      }
+      const mimeType = supported[0];
+      return mimeType;
+    }
+  } catch (e) {
+  }
+  return [];
+};
+const getExtFromMimeType = (mime) => {
+  const m = mime.match(/.+\/([^;]+)(;.+)?/);
+  if (!m) {
+    return null;
+  }
+  return m[1];
+};
+
+const makeCanvas = (w, h) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  canvas.style.border = "1px solid black";
+  document.body.appendChild(canvas);
+  return canvas;
+};
+
+const sleep = (msec) => new Promise((resolve) => setTimeout(resolve, msec));
+
+onload = async () => {
+  const canvas = makeCanvas(w, h);
+  const g = canvas.getContext("2d");
+  const stream = canvas.captureStream();
+  const recorder = new MediaRecorder(stream, { mimeType: getSupprotedMimeType() });
+  recorder.start();
+  const len = fps * sec;
+  const wait = 1000 / fps;
+  for (let i = 0; i < len; i++) {
+    update(g, w, h, i, len);
+    await sleep(wait);
+  }
+  recorder.stop();
+
+  // download
+  const anchor = document.createElement("a");
+	recorder.ondataavailable = (e) => {
+    const blob = new Blob([e.data], { type: e.data.type });
+    anchor.download = "movie." + getExtFromMimeType(e.data.type);
+		anchor.href = window.URL.createObjectURL(blob);
+    anchor.click();
+	}
+};
+
+</script>
