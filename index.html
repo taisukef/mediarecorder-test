@@ -46,7 +46,7 @@ const getSupprotedMimeType = () => {
     }
   } catch (e) {
   }
-  return [];
+  return null;
 };
 const getExtFromMimeType = (mime) => {
   const m = mime.match(/.+\/([^;]+)(;.+)?/);
